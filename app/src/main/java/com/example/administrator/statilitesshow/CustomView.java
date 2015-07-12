@@ -16,6 +16,7 @@ import android.hardware.Sensor;
 import android.hardware.SensorEvent;
 import android.hardware.SensorEventListener;
 import android.hardware.SensorManager;
+import android.location.GpsSatellite;
 import android.util.AttributeSet;
 import android.view.View;
 import android.widget.ImageView;
@@ -26,60 +27,47 @@ import java.util.ArrayList;
 /**
  * Created by Administrator on 10/7/2015.
  */
-public class CustomView extends View  {
-    private float mAzimuth;
-    private float mElevation;
-    private int mPrn;
-    private float mSnr;
-    private boolean mIsUse;
+public class CustomView extends View {
     Bitmap bitmapVeTinh;
     Bitmap bitmapHinhTron = BitmapFactory.decodeResource(getResources(), R.drawable.hinhtronc);
-    private float direction=0;
+    private float direction = 0;
+    ArrayList<GpsSatellite> veTinh;
+
+    public ArrayList<GpsSatellite> getVeTinh() {
+        return veTinh;
+    }
+
+    public void setVeTinh(ArrayList<GpsSatellite> veTinh) {
+        this.veTinh = veTinh;
+    }
 
     public CustomView(Context context) {
         super(context);
     }
-    public void setmAzimuth(float mAzimuth) {
-        this.mAzimuth = mAzimuth;
-    }
-
-    public void setmElevation(float mElevation) {
-        this.mElevation = mElevation;
-    }
-
-    public void setmPrn(int mPrn) {
-        this.mPrn = mPrn;
-    }
-
-    public void setmSnr(float mSnr) {
-        this.mSnr = mSnr;
-    }
-
-    public void setmIsUse(boolean mIsUse) {
-        this.mIsUse = mIsUse;
-    }
-
     protected void onDraw(Canvas canvas) {
         super.onDraw(canvas);
         //xoay theo sensor
         canvas.rotate(direction, canvas.getWidth() / 2, canvas.getHeight() / 2);
-        //tao hinh ve tinh
-        xuLyDuLieu();
-        //ve hinh trong + ve tinh
-        float mx = setViTri(canvas, bitmapHinhTron)[0];
-        float my = setViTri(canvas, bitmapHinhTron)[1];
-        //ve hinh ve tinh
-        canvas.drawBitmap(bitmapVeTinh, mx - bitmapVeTinh.getWidth() / 4, my - (bitmapVeTinh.getHeight() / 2), null);
-        //Ve text
-        Paint paint = new Paint();
-        paint.setColor(Color.WHITE);
-        paint.setTextSize(20);
-        canvas.drawText("" + mPrn, (mx - bitmapVeTinh.getWidth() / 2) + bitmapVeTinh.getWidth() / 2, (my - (bitmapVeTinh.getHeight() / 2) + 2 * bitmapVeTinh.getHeight()), paint);
-        canvas.rotate(direction);
+        for (int i = 0; i < veTinh.size(); i++) {
+            //tao hinh ve tinh
+            xuLyDuLieu(veTinh.get(i).usedInFix(), veTinh.get(i).getPrn(), veTinh.get(i).getSnr());
+            //ve hinh trong + ve tinh
+            float mx = setViTri(canvas, bitmapHinhTron, veTinh.get(i).getElevation(), veTinh.get(i).getAzimuth())[0];
+            float my = setViTri(canvas, bitmapHinhTron, veTinh.get(i).getElevation(), veTinh.get(i).getAzimuth())[1];
+            //ve hinh ve tinh
+            canvas.drawBitmap(bitmapVeTinh, mx - bitmapVeTinh.getWidth() / 4, my - (bitmapVeTinh.getHeight() / 2), null);
+            //Ve text
+            Paint paint = new Paint();
+            paint.setColor(Color.WHITE);
+            paint.setTextSize(20);
+            canvas.drawText("" + veTinh.get(i).getPrn(), (mx - bitmapVeTinh.getWidth() / 2) + bitmapVeTinh.getWidth() / 2, (my - (bitmapVeTinh.getHeight() / 2) + 2 * bitmapVeTinh.getHeight()), paint);
+
+        }
         invalidate();
 
     }
-    public float[] setViTri(Canvas canvas, Bitmap bitmap) {
+
+    public float[] setViTri(Canvas canvas, Bitmap bitmap, float mElevation, float mAzimuth) {
         float mR = bitmap.getWidth() / 2;
         mR = (float) ((float) mR - ((mElevation * mR / 4) / 22.5));
         float m[] = new float[2];
@@ -89,7 +77,8 @@ public class CustomView extends View  {
         m[1] = (canvas.getHeight() / 2) - mY;
         return m;
     }
-    public void xuLyDuLieu() {
+
+    public void xuLyDuLieu(boolean mIsUse, int mPrn, float mSnr) {
         if (mPrn >= 65) {
             if (mIsUse == false) {
                 bitmapVeTinh = BitmapFactory.decodeResource(getResources(), R.drawable.vetinh_xam65);
@@ -120,18 +109,17 @@ public class CustomView extends View  {
             }
         }
     }
-    public void setDirection(int direction) {
-        this.direction = direction;
-        this.invalidate();
-    }
+
     public void setDirection(float direction) {
         this.direction = direction;
         this.invalidate();
     }
+
 }
+
 class HinhTron extends View {
 
-    private float direction=0;
+    private float direction = 0;
 
     public HinhTron(Context context) {
         super(context);
@@ -142,11 +130,12 @@ class HinhTron extends View {
         super.onDraw(canvas);
         canvas.rotate(direction, canvas.getWidth() / 2, canvas.getHeight() / 2);
         // R = bitmapHinhtron.getwidth/2
-        Bitmap bitmapHinhTron = BitmapFactory.decodeResource(getResources(), R.drawable.hinhtronb);
+        Bitmap bitmapHinhTron = BitmapFactory.decodeResource(getResources(), R.drawable.hinhtronc);
         canvas.drawBitmap(bitmapHinhTron, (canvas.getWidth() / 2) - (bitmapHinhTron.getWidth() / 2), (canvas.getHeight() / 2) - (bitmapHinhTron.getHeight() / 2), null);
-       invalidate();
+        invalidate();
 
     }
+
     public void setDirection(float direction) {
         this.direction = direction;
         this.invalidate();
@@ -156,15 +145,19 @@ class HinhTron extends View {
 class ThongSo extends View {
     private int numberOfInView, numberOfInUse;
     Bitmap bitmap = BitmapFactory.decodeResource(getResources(), R.drawable.snr);
+
     public void setNumberOfInUse(int numberOfInUse) {
         this.numberOfInUse = numberOfInUse;
     }
+
     public void setNumberOfInView(int numberOfInView) {
         this.numberOfInView = numberOfInView;
     }
+
     public ThongSo(Context context) {
         super(context);
     }
+
     @Override
     protected void onDraw(Canvas canvas) {
         super.onDraw(canvas);

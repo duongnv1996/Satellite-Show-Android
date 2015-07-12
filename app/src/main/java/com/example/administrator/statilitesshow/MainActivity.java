@@ -2,6 +2,7 @@ package com.example.administrator.statilitesshow;
 
 import android.app.Activity;
 import android.content.Context;
+import android.graphics.Canvas;
 import android.hardware.Sensor;
 import android.hardware.SensorEvent;
 import android.hardware.SensorEventListener;
@@ -24,23 +25,17 @@ import java.util.Iterator;
 
 
 public class MainActivity extends Activity implements GpsStatus.Listener, SensorEventListener {
-    // record the compass picture angle turned
-    private float currentDegree = 0f;
     //tao ra doi tuong sensormanager
-    // device sensor manager
     private SensorManager mSensorManager;
-    TextView textView;
+    ArrayList<GpsSatellite> veTinh;
     float gocXoay = 0;
     HinhTron h;
     CustomView customView1;
-    static final int sensor = SensorManager.SENSOR_ORIENTATION;
     LocationManager locationManager = null;
     RelativeLayout relativeLayout;
-
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_main);
-        textView = (TextView) findViewById(R.id.TextView);
         h = new HinhTron(this);
         customView1 = new CustomView(this);
         // get sensor manager
@@ -65,56 +60,54 @@ public class MainActivity extends Activity implements GpsStatus.Listener, Sensor
         };
         //Yeu cau update GPS
         locationManager.requestLocationUpdates(LocationManager.GPS_PROVIDER, 0, 0, locationListener);
-        //relativeLayout.addView(h);
-        MyAsyncTask myAsyncTask = new MyAsyncTask();
-        myAsyncTask.execute();
+
     }
 
     public void onGpsStatusChanged(int event) {
         GpsStatus gpsStatus;
         gpsStatus = locationManager.getGpsStatus(null);
-        //relativeLayout.removeAllViewsInLayout();
-        // HinhTron hinhTron = new HinhTron(this);
-        //relativeLayout.addView(h);
         if (gpsStatus != null) {
+            //relativeLayout.removeAllViewsInLayout();
             Iterable<GpsSatellite> satellites = gpsStatus.getSatellites();
             //sat : danh sach cac ve tinh
             Iterator<GpsSatellite> sat = satellites.iterator();
+            veTinh = new ArrayList<>();
             String strGpsStats = "";
             int i = 0;
             int numberOfInView = 0;
             int numberOfInUse = 0;
             while (sat.hasNext()) {
                 GpsSatellite satellite = sat.next();
+                veTinh.add(satellite);
                 numberOfInView++;
                 if (satellite.usedInFix() == true) {
                     numberOfInUse++;
                 }
                 ;
-               // Draw(satellite.getAzimuth(), satellite.getElevation(), satellite.usedInFix(), satellite.getPrn(), satellite.getSnr());
             }
             //Ve cac thong so lien quan
-//            ThongSo thongSo = new ThongSo(this);
-//            thongSo.setNumberOfInView(numberOfInView);
-//            thongSo.setNumberOfInUse(numberOfInUse);
-//            relativeLayout.addView(thongSo);
-//            thongSo.invalidate();
+            //Ve ve tinh + hinh tron
+            veVeTinh(veTinh);
+            // Ve cac thong so
+            veThongSo(numberOfInView, numberOfInUse);
         }
 
     }
 
-    public void Draw(float A, float E, boolean isUse, int PRN, float SNR) {
-        customView1 = new CustomView(this);
-        customView1.setmAzimuth(A);
-        customView1.setmElevation(E);
-        customView1.setmIsUse(isUse);
-        customView1.setmPrn(PRN);
-        customView1.setmSnr(SNR);
-        //customView1.setDirection(gocXoay);
+    public void veVeTinh(ArrayList<GpsSatellite> veTinh) {
+        relativeLayout.removeAllViews();
+        //ve hinh tron
+        relativeLayout.addView(h);
+        //ve tung ve tinh
+        customView1.setVeTinh(veTinh);
         relativeLayout.addView(customView1);
-        customView1.invalidate();
-        //Ve text
-
+    }
+    private void veThongSo(int numberOfInView, int numberOfInUse) {
+        ThongSo thongSo = new ThongSo(this);
+        thongSo.setNumberOfInView(numberOfInView);
+        thongSo.setNumberOfInUse(numberOfInUse);
+        relativeLayout.addView(thongSo);
+        thongSo.invalidate();
     }
 
     @Override
@@ -154,8 +147,13 @@ public class MainActivity extends Activity implements GpsStatus.Listener, Sensor
     public void onSensorChanged(SensorEvent event) {
         //Lay ra goc xoay
         gocXoay = Math.round(event.values[0]);
-        // h.setDirection(gocXoay);
-        // customView1.setDirection(gocXoay);
+        h.setDirection(gocXoay);
+        customView1.setDirection(gocXoay);
+
+    }
+
+    public float getGocXoay() {
+        return gocXoay;
     }
 
     @Override
